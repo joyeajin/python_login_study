@@ -19,3 +19,7 @@ def create_user(new_user: NewUserForm, db: Session):
     )
     db.add(user)
     db.commit()
+
+
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
