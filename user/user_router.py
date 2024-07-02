@@ -114,7 +114,7 @@ async def signup(new_user: NewUserForm, db: Session = Depends(get_db)):
 # 로그인!
 @app.post(path="/login")
 async def login(
-    # response: Response,
+    response: Response,
     login_form: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
     db_2: Session = Depends(get_db_2),
@@ -191,6 +191,14 @@ async def login(
 
     # member_pydantic = MemberSchema.from_orm(member)
     app_member_pydantic = AppMemberSchema.from_orm(app_member)
+
+    # access_token 쿠키에 저장
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        expires=access_token_expires,
+        httponly=True,
+    )
 
     code = 0
     result = {
