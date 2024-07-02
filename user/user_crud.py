@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from models import User, Member
+from models import User, Member, AppMember
 from user.user_schema import NewUserForm
 
 from passlib.context import CryptContext
@@ -51,4 +51,20 @@ def get_member_by_user_id(user_id: str, db: Session):
         return member
     except Exception as e:
         print(f"멤버 에러,,,,: {e}")
+        return None
+
+
+def get_app_member_by_user_id(user_id: str, db: Session):
+    print("user_id", user_id)
+    print("db", db)
+
+    try:
+        app_member = db.query(AppMember).filter(AppMember.user_id == user_id).first()
+        # print("####", db.query(AppMember).filter(AppMember.user_id == user_id))
+        # print("app_member", app_member)
+        print("app_member return", app_member)
+        return app_member
+
+    except Exception as e:
+        print(f"앱 멤버 에러,,,,: {e}")
         return None

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, VARCHAR, DateTime, TEXT
+from sqlalchemy import Column, Integer, VARCHAR, DateTime, TEXT, Date
 from datetime import datetime
 
 from database import Base
@@ -25,3 +25,14 @@ class Member(Base):
     type = Column(Integer)
     isPayment = Column(Integer)
     endDate = Column(TEXT)
+
+
+class AppMember(Base):
+    __tablename__ = "tbl_member"
+
+    idx = Column(Integer, primary_key=True, index=True)
+    user_id = Column(VARCHAR(50), unique=True, index=True)
+    nickname = Column(VARCHAR(20))
+    type = Column(Integer)
+    is_payment = Column(Integer)
+    end_date = Column(Date)

@@ -1,3 +1,4 @@
+from datetime import date
 from pydantic import BaseModel, EmailStr, field_validator
 from fastapi import HTTPException
 
@@ -11,16 +12,26 @@ class MemberSchema(BaseModel):
     endDate: str
 
     class Config:
-        from_attribute = True
+        from_attributes = True
 
-    #     from_attributes = True
+
+class AppMemberSchema(BaseModel):
+    idx: int
+    user_id: str
+    nickname: str
+    type: int
+    is_payment: int
+    end_date: date
+
+    class Config:
+        from_attributes = True
 
 
 class Token(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str
-    member: MemberSchema
+    member: AppMemberSchema
 
 
 class NewUserForm(BaseModel):
