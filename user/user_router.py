@@ -4,9 +4,17 @@ from database import get_db
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Header
 from fastapi.security import OAuth2PasswordRequestForm
-from user.user_schema import NewUserForm, Token
-from user.user_crud import get_user_email, create_user, verify_password, get_user_name
+from user.user_schema import MemberSchema, NewUserForm, Token
+from user.user_crud import (
+    get_user_email,
+    create_user,
+    verify_password,
+    get_user_name,
+    get_member_by_user_id,
+)
 from jose import jwt, JWTError
+
+# from models import Member
 
 import os
 from dotenv import load_dotenv
@@ -111,7 +119,6 @@ async def login(
 ):
     # 회원 존재 여부 확인
     user = get_user_email(login_form.username, db)
-    print(user)
 
     if not user:
         raise HTTPException(
@@ -128,6 +135,19 @@ async def login(
             detail="비밀번호를 잘못 입력하셨습니다.",
         )
 
+    # print("login_form.username", login_form.username)
+    # member = get_member_by_user_id(login_form.username, db)
+    # member_data = Member.from_orm(member)
+    member = get_member_by_user_id(login_form.username, db)
+    if not member:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="회원 정보를 찾을 수 없습니다.",
+        )
+
+    # member_data = {"idx": member.idx, "userId": member.userId}
+    # member_pydantic = MemberSchema(**member_data)
+    # print("member_data", member_data)
     # 토큰 생성
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     refresh_token_expires = timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
@@ -139,9 +159,24 @@ async def login(
         data={"sub": user.user_name}, expires_delta=refresh_token_expires
     )
 
+    member_data = {
+        "idx": member.idx,
+        "userId": member.userId,
+        "nickname": member.nickname,
+        "type": member.type,
+        "isPayment": member.isPayment,
+        "endDate": member.endDate,
+    }
+    member_pydantic = MemberSchema(
+        **member_data
+    )  # **member_data : member_data딕셔너리 언패킹
+
     # return HTTPException(status_code=status.HTTP_200_OK, detail="로그인 성공")
     return Token(
-        access_token=access_token, refresh_token=refresh_token, token_type="Bearer"
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="Bearer",
+        member=member_pydantic,
     )
 
 

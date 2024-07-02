@@ -2,10 +2,25 @@ from pydantic import BaseModel, EmailStr, field_validator
 from fastapi import HTTPException
 
 
+class MemberSchema(BaseModel):
+    idx: int
+    userId: str
+    nickname: str
+    type: int
+    isPayment: int
+    endDate: str
+
+    class Config:
+        from_attribute = True
+
+    #     from_attributes = True
+
+
 class Token(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str
+    member: MemberSchema
 
 
 class NewUserForm(BaseModel):
