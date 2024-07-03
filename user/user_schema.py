@@ -1,5 +1,5 @@
-from datetime import date
-from pydantic import BaseModel, EmailStr, field_validator
+from datetime import date, datetime
+from pydantic import BaseModel, EmailStr, field_validator, Field
 from fastapi import HTTPException
 
 
@@ -28,9 +28,10 @@ class AppMemberSchema(BaseModel):
 
 
 class Token(BaseModel):
+    grant_type: str
     access_token: str
     refresh_token: str
-    token_type: str
+    expired_in: datetime
     member: AppMemberSchema
 
 

@@ -25,3 +25,8 @@
     - get_app_member_by_user_id 함수에서 filter 할 때 .first()로 했어야 하는데 .all()로 돼있어서 데이터를 제대로 못뽑아왔었음
 
 - 로그인 할 때 access_token 쿠키에 저장
+---
+### 2024.07.03
+- Token 스키마에 expiredIn(access token 만료시간) 추가
+
+- is_delete 이용해 탈퇴한 회원 여부 체크

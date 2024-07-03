@@ -36,3 +36,4 @@ class AppMember(Base):
     type = Column(Integer)
     is_payment = Column(Integer)
     end_date = Column(Date)
+    is_delete = Column(Integer)  # 탈퇴 여부

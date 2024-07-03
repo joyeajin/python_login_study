@@ -68,3 +68,17 @@ def get_app_member_by_user_id(user_id: str, db: Session):
     except Exception as e:
         print(f"앱 멤버 에러,,,,: {e}")
         return None
+
+
+def get_app_member_is_delete(user_id: str, db: Session):
+    try:
+        app_member_is_delete = (
+            db.query(AppMember)
+            .filter(AppMember.user_id == user_id, AppMember.is_delete == 1)
+            .first()
+        )
+        return app_member_is_delete
+
+    except Exception as e:
+        print(f"앱 멤버 탈퇴여부 에러,,,,: {e}")
+        return None

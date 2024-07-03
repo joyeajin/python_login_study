@@ -2,7 +2,7 @@ from datetime import timedelta, datetime, timezone
 from sqlalchemy.orm import Session
 from database import get_db, get_db_2
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Header
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Header, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from user.user_schema import MemberSchema, NewUserForm, Token, AppMemberSchema
 from user.user_crud import (
@@ -12,6 +12,7 @@ from user.user_crud import (
     get_user_name,
     get_member_by_user_id,
     get_app_member_by_user_id,
+    get_app_member_is_delete,
 )
 from jose import jwt, JWTError
 
@@ -33,11 +34,12 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
+        print("expire", expire)
     else:
         expire = datetime.now(timezone.utc) + timedelta(minutes=15)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+    return encoded_jwt, expire
 
 
 def create_refresh_token(data: dict, expires_delta: timedelta | None = None):
@@ -89,6 +91,17 @@ def refresh_access_token(token: str, db):
         )
 
 
+def verify_access_token(token: str):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except JWTError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"액세스 토큰 디코딩 에러: {e}",
+        )
+
+
 @app.get("/test")
 async def user_test():
     return "test"
@@ -115,17 +128,31 @@ async def signup(new_user: NewUserForm, db: Session = Depends(get_db)):
 @app.post(path="/login")
 async def login(
     response: Response,
-    login_form: OAuth2PasswordRequestForm = Depends(),
+    login_form: OAuth2PasswordRequestForm = Depends(),  # OAuth2PasswordRequestForm 사용해서 비밀번호나 아이디가 누락되면 fastApi가 자동으로 422 Unprocessable Entity 상태 코드 반환함
     db: Session = Depends(get_db),
     db_2: Session = Depends(get_db_2),
 ):
+    # id누락
+    if not login_form.username:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": 20003, "message": "유저 아이디를 입력해주세요."},
+        )
+
+    # 비번 누락
+    if not login_form.password:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": 20004, "message": "비밀번호를 입력해주세요."},
+        )
+
     # 회원 존재 여부 확인
     user = get_user_email(login_form.username, db)
 
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="존재하지 않는 ID 입니다.",
+            detail={"code": 10000, "message": "존재하지 않는 회원입니다."},
         )
 
     res = verify_password(login_form.password, user.hashed_pw)
@@ -133,7 +160,14 @@ async def login(
     if not res:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="비밀번호를 잘못 입력하셨습니다.",
+            detail={"code": 10003, "message": "잘못된 비밀번호 입니다."},
+        )
+
+    is_delete = get_app_member_is_delete(login_form.username, db_2)
+    if is_delete:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": 10004, "message": "탈퇴한 회원입니다."},
         )
 
     # member = get_member_by_user_id(login_form.username, db)
@@ -146,6 +180,8 @@ async def login(
     # print("member", member)
 
     # print("login_form.username", login_form.username)
+
+    # tbl_member 테이블에 정보가 없을 때
     app_member = get_app_member_by_user_id(login_form.username, db_2)
     if not app_member:
         raise HTTPException(
@@ -170,9 +206,10 @@ async def login(
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     refresh_token_expires = timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
 
-    access_token = create_access_token(
+    access_token, expired_in = create_access_token(
         data={"sub": user.user_name}, expires_delta=access_token_expires
     )
+    print("expired_in", expired_in)
     refresh_token = create_refresh_token(
         data={"sub": user.user_name}, expires_delta=refresh_token_expires
     )
@@ -204,9 +241,10 @@ async def login(
     result = {
         "code": code,
         "data": Token(
+            grant_type="Bearer",
             access_token=access_token,
             refresh_token=refresh_token,
-            token_type="Bearer",
+            expired_in=expired_in,
             member=app_member_pydantic,
         ),
     }
@@ -290,3 +328,14 @@ async def refresh_token(auth_token: str = Header(...), db: Session = Depends(get
 #     return Token(
 #         access_token=access_token, refresh_token=refresh_token, token_type="Bearer"
 #     )
+
+
+# 로그아웃!
+@app.get(path="/logout")
+async def logout(response: Response, request: Request):
+    # access_token = request.cookies.get("access_token")
+
+    # 쿠키 삭제
+    response.delete_cookie(key="access_token")
+
+    return HTTPException(status_code=status.HTTP_200_OK, detail="로그아웃 완료")
