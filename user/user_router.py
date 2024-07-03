@@ -15,6 +15,7 @@ from user.user_crud import (
     get_app_member_is_delete,
 )
 from jose import jwt, JWTError
+from fastapi.responses import JSONResponse
 
 # from models import Member
 
@@ -59,7 +60,7 @@ def create_token(data: dict, expires_delta: timedelta, token_type: str):
     expire = datetime.now(timezone.utc) + expires_delta
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt, expire if token_type == "access" else encoded_jwt
+    return encoded_jwt, expire if token_type == "access" else None
 
 
 def refresh_access_token(token: str, db):
@@ -226,12 +227,13 @@ async def login(
         expires_delta=access_token_expires,
         token_type="access",
     )
-    print("expired_in", expired_in)
+    # print("expired_in", expired_in)
     refresh_token = create_token(
         data={"sub": user.user_name},
         expires_delta=refresh_token_expires,
         token_type="refresh",
     )
+    # print("refresh_token", refresh_token)
 
     # member_data = {
     #     "idx": member.idx,
@@ -262,7 +264,7 @@ async def login(
         "data": Token(
             grant_type="Bearer",
             access_token=access_token,
-            refresh_token=refresh_token,
+            refresh_token=refresh_token[0],
             expired_in=expired_in,
             member=app_member_pydantic,
         ),
@@ -357,4 +359,6 @@ async def logout(response: Response, request: Request):
     # 쿠키 삭제
     response.delete_cookie(key="access_token")
 
-    return HTTPException(status_code=status.HTTP_200_OK, detail="로그아웃 완료")
+    return JSONResponse(
+        status_code=status.HTTP_200_OK, content={"detail": "로그아웃 완료"}
+    )

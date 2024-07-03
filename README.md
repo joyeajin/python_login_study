@@ -34,3 +34,5 @@
 - response body에 code 추가
 
 - create_access_token, create_refresh_token로 나뉘어있던 함수를 create_token 하나로 합치고 인자로 token_type 받도록 리팩토링
+
+- 로그아웃 JSONResponse로 수정
