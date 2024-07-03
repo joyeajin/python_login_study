@@ -30,27 +30,36 @@ REFRESH_TOKEN_EXPIRE_MINUTES = int(os.getenv("REFRESH_TOKEN_EXPIRE_MINUTES"))
 app = APIRouter(prefix="/user")
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None):
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
-        print("expire", expire)
-    else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt, expire
+# def create_access_token(data: dict, expires_delta: timedelta | None = None):
+#     to_encode = data.copy()
+#     if expires_delta:
+#         expire = datetime.now(timezone.utc) + expires_delta
+#         print("expire", expire)
+#     else:
+#         expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+#     to_encode.update({"exp": expire})
+#     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+#     return encoded_jwt, expire
 
 
-def create_refresh_token(data: dict, expires_delta: timedelta | None = None):
+# def create_refresh_token(data: dict, expires_delta: timedelta | None = None):
+#     to_encode = data.copy()
+#     if expires_delta:
+#         expire = datetime.now(timezone.utc) + expires_delta
+#     else:
+#         expire = datetime.now(timezone.utc) + timedelta(minutes=60 * 24)
+#     to_encode.update({"exp": expire})
+#     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+#     return encoded_jwt
+
+
+# 토큰 생성 함수
+def create_token(data: dict, expires_delta: timedelta, token_type: str):
     to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
-    else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=60 * 24)
+    expire = datetime.now(timezone.utc) + expires_delta
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+    return encoded_jwt, expire if token_type == "access" else encoded_jwt
 
 
 def refresh_access_token(token: str, db):
@@ -73,13 +82,15 @@ def refresh_access_token(token: str, db):
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="해당 유저가 존재하지 않습니다.",
+                detail={"code": 10000, "message": "존재하지 않는 회원입니다."},
             )
 
         # 새로운 액세스 토큰 생성
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        access_token = create_access_token(
-            data={"sub": username}, expires_delta=access_token_expires
+        access_token = create_token(
+            data={"sub": username},
+            expires_delta=access_token_expires,
+            token_type="access",
         )
 
         return access_token
@@ -91,6 +102,7 @@ def refresh_access_token(token: str, db):
         )
 
 
+# 토큰 유효성 검사
 def verify_access_token(token: str):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -135,14 +147,14 @@ async def login(
     # id누락
     if not login_form.username:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={"code": 20003, "message": "유저 아이디를 입력해주세요."},
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": 20003, "message": "아이디를 입력해주세요."},
         )
 
     # 비번 누락
     if not login_form.password:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": 20004, "message": "비밀번호를 입력해주세요."},
         )
 
@@ -151,10 +163,11 @@ async def login(
 
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"code": 10000, "message": "존재하지 않는 회원입니다."},
         )
 
+    # 비밀번호 검증
     res = verify_password(login_form.password, user.hashed_pw)
 
     if not res:
@@ -163,10 +176,12 @@ async def login(
             detail={"code": 10003, "message": "잘못된 비밀번호 입니다."},
         )
 
+    # 탈퇴한 회원인지 확인
     is_delete = get_app_member_is_delete(login_form.username, db_2)
+
     if is_delete:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"code": 10004, "message": "탈퇴한 회원입니다."},
         )
 
@@ -206,12 +221,16 @@ async def login(
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     refresh_token_expires = timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
 
-    access_token, expired_in = create_access_token(
-        data={"sub": user.user_name}, expires_delta=access_token_expires
+    access_token, expired_in = create_token(
+        data={"sub": user.user_name},
+        expires_delta=access_token_expires,
+        token_type="access",
     )
     print("expired_in", expired_in)
-    refresh_token = create_refresh_token(
-        data={"sub": user.user_name}, expires_delta=refresh_token_expires
+    refresh_token = create_token(
+        data={"sub": user.user_name},
+        expires_delta=refresh_token_expires,
+        token_type="refresh",
     )
 
     # member_data = {

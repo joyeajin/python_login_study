@@ -29,10 +29,11 @@ def get_user_name(name: str, db: Session):
 
 
 def create_user(new_user: NewUserForm, db: Session):
+    hashed_pw = pwd_context.hash(new_user.password)
     user = User(
         user_name=new_user.name,
         email=new_user.email,
-        hashed_pw=pwd_context.hash(new_user.password),
+        hashed_pw=hashed_pw,
     )
     db.add(user)
     db.commit()

@@ -30,3 +30,7 @@
 - Token 스키마에 expiredIn(access token 만료시간) 추가
 
 - is_delete 이용해 탈퇴한 회원 여부 체크
+
+- response body에 code 추가
+
+- create_access_token, create_refresh_token로 나뉘어있던 함수를 create_token 하나로 합치고 인자로 token_type 받도록 리팩토링
