@@ -42,3 +42,5 @@
 
 - user_router.py에 있던 token 발급 관련 함수들 user_crud.py로 이동
     - class로 수정
+
+- token 발급 관련 함수들 토큰만 관리하는 token_service.py로 이동

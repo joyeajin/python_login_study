@@ -1,4 +1,4 @@
-from datetime import timedelta, datetime, timezone
+from datetime import timedelta
 from sqlalchemy.orm import Session
 from database import get_db, get_db_2
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Header, Request
@@ -6,10 +6,9 @@ from fastapi.security import OAuth2PasswordRequestForm
 from user.user_schema import MemberSchema, NewUserForm, Token, AppMemberSchema
 from user.user_crud import (
     UserAppMemberService,
-    TokenService,
     verify_password,
 )
-from jose import jwt, JWTError
+from user.token_service import TokenService
 from fastapi.responses import JSONResponse
 
 # from models import Member
@@ -133,7 +132,6 @@ async def login(
     # )  # **member_data : member_data딕셔너리 언패킹
 
     # 토큰 생성
-
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     refresh_token_expires = timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
 
