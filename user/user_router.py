@@ -11,14 +11,11 @@ from user.user_crud import (
 from user.token_service import TokenService
 from fastapi.responses import JSONResponse
 
-# from models import Member
-
 import os
 from dotenv import load_dotenv
 
+# env 파일에 있는 환경변수 가져옴
 load_dotenv()
-# SECRET_KEY = os.getenv("SECRET_KEY")
-# ALGORITHM = os.getenv("ALGORITHM")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
 REFRESH_TOKEN_EXPIRE_MINUTES = int(os.getenv("REFRESH_TOKEN_EXPIRE_MINUTES"))
 
@@ -37,6 +34,7 @@ async def user_test():
 async def signup(new_user: NewUserForm, db: Session = Depends(get_db)):
 
     user_service = UserAppMemberService(db)
+
     # 회원 존재 여부 확인
     user = user_service.get_user_email(new_user.email)
 
@@ -111,8 +109,8 @@ async def login(
     #         detail="회원 정보를 찾을 수 없습니다.",
     #     )
 
-    # tbl_member 테이블에 정보가 없을 때
     app_member = app_member_service.get_app_member_by_user_id(login_form.username)
+    # tbl_member 테이블에 정보가 없을 때
     if not app_member:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -159,6 +157,8 @@ async def login(
     # )  # **member_data : member_data딕셔너리 언패킹
 
     # member_pydantic = MemberSchema.from_orm(member)
+
+    # FastAPI와 Pydantic을 사용하여 데이터베이스 객체를 Pydantic 모델로 변환
     app_member_pydantic = AppMemberSchema.from_orm(app_member)
 
     # access_token 쿠키에 저장
@@ -190,8 +190,7 @@ async def refresh_token(auth_token: str = Header(...), db: Session = Depends(get
 
     try:
         token_type, token = auth_token.split()
-        print("token_type", token_type)
-        print("token", token)
+
         if token_type != "Bearer":
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

@@ -44,3 +44,5 @@
     - class로 수정
 
 - token 발급 관련 함수들 토큰만 관리하는 token_service.py로 이동
+
+- 각 함수에 주석 추가

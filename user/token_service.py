@@ -1,7 +1,9 @@
 from datetime import timedelta, datetime, timezone
 from jose import jwt, JWTError
 from fastapi import HTTPException, status
-
+from user.user_crud import (
+    UserAppMemberService,
+)
 import os
 
 
@@ -23,6 +25,7 @@ class TokenService:
         else:
             return encoded_jwt
 
+    # refresh_token으로 access_token을 재발급하는 함수
     def refresh_access_token(self, token: str, db):
         try:
             payload = jwt.decode(token, self.SECRET_KEY, algorithms=[self.ALGORITHM])
