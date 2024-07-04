@@ -10,7 +10,6 @@ from user import user_router
 
 app = FastAPI()
 
-# app.include_router(board_router.app, tags=["board"])
 app.include_router(user_router.app, tags=["user"])
 
 

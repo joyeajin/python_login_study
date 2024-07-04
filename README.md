@@ -36,3 +36,9 @@
 - create_access_token, create_refresh_token로 나뉘어있던 함수를 create_token 하나로 합치고 인자로 token_type 받도록 리팩토링
 
 - 로그아웃 JSONResponse로 수정
+---
+### 2024.07.04
+- user_crud.py 내부 함수들 class로 수정
+
+- user_router.py에 있던 token 발급 관련 함수들 user_crud.py로 이동
+    - class로 수정
